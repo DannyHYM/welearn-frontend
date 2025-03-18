@@ -2,11 +2,12 @@
 
 import { useState, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { LucideIcon, Plus, MoreVertical, LogOut, Trash2, GripVertical } from "lucide-react"
+import { LucideIcon, Plus, MoreVertical, LogOut, Trash2, GripVertical, BookOpen, Users, GraduationCap, Brain, Lightbulb, BookMarked, Target, Trophy, Star, Heart, BookOpenCheck, BookOpenText, BookOpenCheckIcon, BookOpenTextIcon, BookOpenIcon, UsersIcon, GraduationCapIcon, BrainIcon, LightbulbIcon, BookMarkedIcon, TargetIcon, TrophyIcon, StarIcon, HeartIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { SidebarGroup, SidebarGroupLabel } from "@/components/ui/sidebar"
 import { useGroupStore, type GroupState } from "@/components/Header"
+import { useGroupsStore } from "@/lib/store/groups"
 import {
   DndContext,
   closestCenter,
@@ -53,15 +54,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
-interface NavMainProps {
-  items: {
-    title: string
-    url: string
-    icon: LucideIcon
-    isActive?: boolean
-  }[]
-}
+const AVAILABLE_ICONS = [
+  { name: "Book", icon: BookOpenIcon },
+  { name: "Users", icon: UsersIcon },
+  { name: "Graduation Cap", icon: GraduationCapIcon },
+  { name: "Brain", icon: BrainIcon },
+  { name: "Lightbulb", icon: LightbulbIcon },
+  { name: "Bookmarked", icon: BookMarkedIcon },
+  { name: "Target", icon: TargetIcon },
+  { name: "Trophy", icon: TrophyIcon },
+  { name: "Star", icon: StarIcon },
+  { name: "Heart", icon: HeartIcon },
+  { name: "Book Open Check", icon: BookOpenCheckIcon },
+  { name: "Book Open Text", icon: BookOpenTextIcon },
+]
 
 function SortableItem({ 
   item, 
@@ -69,14 +77,21 @@ function SortableItem({
   onDelete,
   onExit,
   isActive,
-  onGroupSelect
+  onGroupSelect,
+  onUpdateIcon
 }: { 
-  item: NavMainProps["items"][0]
+  item: {
+    title: string
+    url: string
+    icon: LucideIcon
+    isActive?: boolean
+  }
   index: number
   onDelete: (title: string) => void
   onExit: (title: string) => void
   isActive: boolean
   onGroupSelect: (title: string) => void
+  onUpdateIcon: (title: string, icon: LucideIcon) => void
 }) {
   const {
     attributes,
@@ -95,6 +110,7 @@ function SortableItem({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
+  const [iconDialogOpen, setIconDialogOpen] = useState(false)
 
   return (
     <div ref={setNodeRef} style={style} className="group flex items-center touch-none">
@@ -128,6 +144,10 @@ function SortableItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setIconDialogOpen(true)}>
+            <item.icon className="mr-2 h-4 w-4" />
+            Change Icon
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setExitDialogOpen(true)}
             className="text-muted-foreground"
@@ -144,6 +164,35 @@ function SortableItem({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <Dialog open={iconDialogOpen} onOpenChange={setIconDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Group Icon</DialogTitle>
+            <DialogDescription>
+              Select a new icon for your group.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[300px] pr-4">
+            <div className="grid grid-cols-4 gap-4">
+              {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                <Button
+                  key={name}
+                  variant="outline"
+                  className="h-20 flex flex-col items-center justify-center gap-2"
+                  onClick={() => {
+                    onUpdateIcon(item.title, Icon)
+                    setIconDialogOpen(false)
+                  }}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs text-center">{name}</span>
+                </Button>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -194,8 +243,7 @@ function SortableItem({
   )
 }
 
-export function NavMain({ items: initialItems }: NavMainProps) {
-  const [items, setItems] = useState(initialItems)
+export function NavMain() {
   const [open, setOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
   const [groupCode, setGroupCode] = useState("")
@@ -203,6 +251,8 @@ export function NavMain({ items: initialItems }: NavMainProps) {
   // Use separate selectors to prevent unnecessary re-renders
   const currentGroup = useGroupStore((state: GroupState) => state.currentGroup)
   const setCurrentGroup = useGroupStore((state: GroupState) => state.setCurrentGroup)
+  
+  const { groups, addGroup, deleteGroup, exitGroup, updateGroupIcon } = useGroupsStore()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -215,43 +265,35 @@ export function NavMain({ items: initialItems }: NavMainProps) {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      setItems((prevItems) => {
-        const oldIndex = prevItems.findIndex((item) => item.title === active.id)
-        const newIndex = prevItems.findIndex((item) => item.title === over.id)
-        return arrayMove(prevItems, oldIndex, newIndex)
-      })
+      // TODO: Implement drag and drop reordering in the store
     }
   }
 
   const handleCreateGroup = useCallback(() => {
     if (newGroupName.trim()) {
-      setItems(prevItems => [
-        ...prevItems,
-        {
-          title: newGroupName,
-          url: `/${newGroupName.toLowerCase().replace(/\s+/g, '-')}`,
-          icon: Plus,
-          isActive: false
-        }
-      ])
+      addGroup({
+        title: newGroupName,
+        icon: BookOpenIcon, // Default icon
+        isActive: false
+      })
       setNewGroupName("")
       setOpen(false)
     }
-  }, [newGroupName])
+  }, [newGroupName, addGroup])
 
   const handleDeleteGroup = useCallback((title: string) => {
-    setItems(prevItems => prevItems.filter(item => item.title !== title))
+    deleteGroup(title)
     if (currentGroup === title) {
       setCurrentGroup("")
     }
-  }, [currentGroup, setCurrentGroup])
+  }, [currentGroup, setCurrentGroup, deleteGroup])
 
   const handleExitGroup = useCallback((title: string) => {
-    setItems(prevItems => prevItems.filter(item => item.title !== title))
+    exitGroup(title)
     if (currentGroup === title) {
       setCurrentGroup("")
     }
-  }, [currentGroup, setCurrentGroup])
+  }, [currentGroup, setCurrentGroup, exitGroup])
 
   const handleGroupSelect = useCallback((title: string) => {
     setCurrentGroup(title)
@@ -317,6 +359,7 @@ export function NavMain({ items: initialItems }: NavMainProps) {
           </DialogContent>
         </Dialog>
       </div>
+
       <nav className="grid gap-1">
         <DndContext
           sensors={sensors}
@@ -324,10 +367,10 @@ export function NavMain({ items: initialItems }: NavMainProps) {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={items.map(item => item.title)}
+            items={groups.map(item => item.title)}
             strategy={verticalListSortingStrategy}
           >
-            {items.map((item, index) => (
+            {groups.map((item, index) => (
               <SortableItem 
                 key={item.title} 
                 item={item} 
@@ -336,6 +379,7 @@ export function NavMain({ items: initialItems }: NavMainProps) {
                 onGroupSelect={handleGroupSelect}
                 onDelete={handleDeleteGroup}
                 onExit={handleExitGroup}
+                onUpdateIcon={updateGroupIcon}
               />
             ))}
           </SortableContext>
