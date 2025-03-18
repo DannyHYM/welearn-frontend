@@ -53,7 +53,7 @@ const data = {
   navMain: [],
   projects: [
     {
-      name: "Home",
+      name: "Dashboard",
       url: "#",
       icon: PieChart,
     }

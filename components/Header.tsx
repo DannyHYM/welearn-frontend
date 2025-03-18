@@ -10,7 +10,7 @@ export interface GroupState {
 }
 
 export const useGroupStore = create<GroupState>((set) => ({
-  currentGroup: "Playground",
+  currentGroup: "",
   setCurrentGroup: (group: string) => set({ currentGroup: group }),
 }))
 
@@ -26,9 +26,11 @@ export function Header() {
       >
         <PanelLeftClose className="h-4 w-4" />
       </button>
-      <div className="flex items-center gap-2">
-        <h1 className="text-lg font-semibold">{currentGroup}</h1>
-      </div>
+      {currentGroup && (
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold">{currentGroup}</h1>
+        </div>
+      )}
     </header>
   )
 } 
