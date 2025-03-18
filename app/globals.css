@@ -81,4 +81,21 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes fadeOutAndCollapse {
+  from {
+    opacity: 1;
+    max-height: 500px;
+    margin-bottom: 2rem;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+  }
+}
+
+.animate-delete {
+  animation: fadeOutAndCollapse 0.5s ease-out forwards;
 } 
