@@ -1,21 +1,34 @@
-'use client';
+"use client"
 
-const Header = () => {
+import { PanelLeftClose } from "lucide-react"
+import { create } from "zustand"
+import { useSidebar } from "@/components/ui/sidebar"
+
+export interface GroupState {
+  currentGroup: string
+  setCurrentGroup: (group: string) => void
+}
+
+export const useGroupStore = create<GroupState>((set) => ({
+  currentGroup: "Playground",
+  setCurrentGroup: (group: string) => set({ currentGroup: group }),
+}))
+
+export function Header() {
+  const { toggleSidebar } = useSidebar()
+  const currentGroup = useGroupStore((state: GroupState) => state.currentGroup)
+
   return (
-    <header className="fixed top-0 left-0 right-0 py-4 px-6 flex justify-between items-center shadow-md bg-white z-50">
-      <div className="text-xl font-bold">
-        Your Logo
-      </div>
-      <div className="flex gap-4">
-        <button className="px-4 py-2 rounded-full border border-black text-black hover:bg-black hover:text-white transition-colors">
-          Log in
-        </button>
-        <button className="px-4 py-2 rounded-full bg-black text-white hover:bg-gray-800 transition-colors">
-          Sign up
-        </button>
+    <header className="flex h-14 items-center gap-4 border-b px-6">
+      <button
+        onClick={toggleSidebar}
+        className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent"
+      >
+        <PanelLeftClose className="h-4 w-4" />
+      </button>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold">{currentGroup}</h1>
       </div>
     </header>
-  );
-};
-
-export default Header; 
+  )
+} 
